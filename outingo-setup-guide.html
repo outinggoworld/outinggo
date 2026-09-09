@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outingo — Complete Setup Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f0c;
+    --card: #111711;
+    --card2: #161d17;
+    --green: #22c55e;
+    --green-dim: #15803d;
+    --gold: #f59e0b;
+    --blue: #38bdf8;
+    --purple: #a78bfa;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* TOP BAR */
+  .topbar {
+    background: linear-gradient(90deg, #0d1f10, #1a3a1e);
+    border-bottom: 1px solid rgba(34,197,94,0.2);
+    padding: 14px 5%; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  .topbar-logo { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:white; }
+  .topbar-logo span { color:var(--green); }
+  .topbar-badge { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); color:var(--green); padding:6px 14px; border-radius:50px; font-size:.78rem; font-weight:600; }
+
+  /* HERO */
+  .hero { text-align:center; padding:60px 5% 40px; }
+  .hero-title { font-family:'Syne',sans-serif; font-size:clamp(2rem,5vw,3.4rem); font-weight:800; line-height:1.2; margin-bottom:14px; }
+  .hero-title em { font-style:normal; color:var(--green); }
+  .hero-sub { color:var(--muted); font-size:1rem; max-width:560px; margin:0 auto 40px; line-height:1.7; }
+  .progress-bar { max-width:700px; margin:0 auto; display:flex; gap:0; border-radius:50px; overflow:hidden; height:8px; background:rgba(255,255,255,0.05); }
+  .progress-seg { flex:1; }
+  .progress-seg.done { background:var(--green); }
+  .progress-seg.partial { background:var(--gold); }
+  .progress-seg.todo { background:rgba(255,255,255,0.08); }
+
+  /* OVERVIEW CARDS */
+  .overview { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; padding:0 5% 60px; max-width:1200px; margin:0 auto; }
+  .ov-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:24px; text-align:center; transition:.2s; cursor:pointer; }
+  .ov-card:hover { border-color:rgba(34,197,94,0.3); transform:translateY(-3px); }
+  .ov-icon { font-size:2.4rem; margin-bottom:10px; }
+  .ov-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:4px; }
+  .ov-sub { font-size:.78rem; color:var(--muted); }
+  .ov-status { display:inline-block; padding:3px 10px; border-radius:50px; font-size:.72rem; font-weight:600; margin-top:10px; }
+  .status-done { background:rgba(34,197,94,0.15); color:var(--green); }
+  .status-setup { background:rgba(245,158,11,0.15); color:var(--gold); }
+  .status-deploy { background:rgba(56,189,248,0.15); color:var(--blue); }
+
+  /* MAIN CONTENT */
+  .content { max-width:1100px; margin:0 auto; padding:0 5% 80px; }
+
+  /* STEP CARD */
+  .step-card { background:var(--card); border:1px solid var(--border); border-radius:24px; margin-bottom:28px; overflow:hidden; }
+  .step-header { display:flex; align-items:center; gap:16px; padding:24px 28px; cursor:pointer; transition:.2s; }
+  .step-header:hover { background:rgba(255,255,255,0.03); }
+  .step-num { width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; flex-shrink:0; }
+  .num-green { background:rgba(34,197,94,0.15); color:var(--green); border:1px solid rgba(34,197,94,0.3); }
+  .num-gold { background:rgba(245,158,11,0.15); color:var(--gold); border:1px solid rgba(245,158,11,0.3); }
+  .num-blue { background:rgba(56,189,248,0.15); color:var(--blue); border:1px solid rgba(56,189,248,0.3); }
+  .num-purple { background:rgba(167,139,250,0.15); color:var(--purple); border:1px solid rgba(167,139,250,0.3); }
+  .step-info { flex:1; }
+  .step-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; margin-bottom:4px; }
+  .step-desc { color:var(--muted); font-size:.85rem; }
+  .step-arrow { color:var(--muted); font-size:1.2rem; transition:.3s; }
+  .step-body { padding:0 28px 28px; display:none; }
+  .step-card.open .step-body { display:block; }
+  .step-card.open .step-arrow { transform:rotate(180deg); }
+
+  /* SUBSTEPS */
+  .substep { display:flex; gap:14px; margin-bottom:20px; align-items:flex-start; }
+  .substep-num { width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; color:var(--muted); flex-shrink:0; margin-top:2px; }
+  .substep-content h4 { font-size:.95rem; font-weight:600; margin-bottom:6px; }
+  .substep-content p { font-size:.84rem; color:var(--muted); line-height:1.6; margin-bottom:8px; }
+  .substep-content a { color:var(--blue); text-decoration:none; font-size:.84rem; }
+  .substep-content a:hover { text-decoration:underline; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background:#080e09; border:1px solid rgba(34,197,94,0.15); border-radius:14px;
+    padding:18px 20px; margin:12px 0; font-family:var(--mono); font-size:.82rem;
+    line-height:1.7; overflow-x:auto; position:relative;
+  }
+  .code-block .comment { color:#4a7a4a; }
+  .code-block .cmd { color:var(--green); }
+  .code-block .str { color:var(--gold); }
+  .code-block .kw { color:var(--blue); }
+  .code-block .var { color:var(--purple); }
+  .copy-btn {
+    position:absolute; top:10px; right:10px; background:rgba(34,197,94,0.15);
+    border:1px solid rgba(34,197,94,0.3); color:var(--green); padding:4px 12px;
+    border-radius:8px; font-size:.72rem; cursor:pointer; font-family:'DM Sans',sans-serif;
+    transition:.2s;
+  }
+  .copy-btn:hover { background:rgba(34,197,94,0.25); }
+
+  /* INFO BOXES */
+  .info-box { border-radius:14px; padding:16px 18px; margin:14px 0; font-size:.84rem; line-height:1.7; }
+  .info-green { background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); color:#86efac; }
+  .info-gold { background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); color:#fcd34d; }
+  .info-blue { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); color:#7dd3fc; }
+  .info-red { background:rgba(248,113,113,0.08); border:1px solid rgba(248,113,113,0.2); color:#fca5a5; }
+
+  /* FILE TREE */
+  .file-tree { background:#080e09; border:1px solid var(--border); border-radius:14px; padding:18px 20px; font-family:var(--mono); font-size:.82rem; line-height:2; }
+  .file-tree .folder { color:var(--gold); }
+  .file-tree .file { color:var(--text); }
+  .file-tree .file-note { color:var(--muted); font-size:.75rem; }
+  .indent1 { padding-left:20px; }
+  .indent2 { padding-left:40px; }
+
+  /* COST TABLE */
+  .cost-table { width:100%; border-collapse:collapse; font-size:.87rem; margin:16px 0; }
+  .cost-table th { background:rgba(255,255,255,0.05); padding:10px 14px; text-align:left; color:var(--muted); font-weight:600; font-size:.78rem; text-transform:uppercase; letter-spacing:.4px; }
+  .cost-table td { padding:12px 14px; border-bottom:1px solid var(--border); }
+  .cost-table .free { color:var(--green); font-weight:700; }
+  .cost-table .paid { color:var(--gold); }
+
+  /* CHECKLIST */
+  .checklist { list-style:none; }
+  .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.87rem; }
+  .checklist li:last-child { border:none; }
+  .check-icon { font-size:1rem; margin-top:1px; }
+
+  /* FINAL ARCH */
+  .arch-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin:20px 0; }
+  .arch-box { background:var(--card2); border:1px solid var(--border); border-radius:14px; padding:16px; text-align:center; }
+  .arch-box .arch-icon { font-size:1.8rem; margin-bottom:6px; }
+  .arch-box .arch-name { font-size:.82rem; font-weight:600; margin-bottom:2px; }
+  .arch-box .arch-tech { font-size:.72rem; color:var(--muted); }
+  .arch-arrow { display:flex; align-items:center; justify-content:center; color:var(--green); font-size:1.3rem; }
+
+  @media(max-width:600px) {
+    .step-header { padding:18px 20px; }
+    .step-body { padding:0 20px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">Out<span>ingo</span></div>
+  <div class="topbar-badge">🛠️ Complete Developer Setup Guide</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1 class="hero-title">Outingo ka <em>Full Stack</em> Setup</h1>
+  <p class="hero-sub">Backend → WhatsApp → Razorpay → Hosting — step by step, bilkul simple Hindi-English mein. Ek din mein sab ready ho jayega! 🚀</p>
+  <div class="progress-bar">
+    <div class="progress-seg done"></div>
+    <div class="progress-seg done"></div>
+    <div class="progress-seg partial"></div>
+    <div class="progress-seg partial"></div>
+    <div class="progress-seg todo"></div>
+    <div class="progress-seg todo"></div>
+    <div class="progress-seg todo"></div>
+    <div class="progress-seg todo"></div>
+  </div>
+  <div style="color:var(--muted);font-size:.78rem;margin-top:10px;">Website banaya ✅ → Backend setup → WhatsApp → Razorpay → Deploy</div>
+</div>
+
+<!-- OVERVIEW CARDS -->
+<div class="overview">
+  <div class="ov-card">
+    <div class="ov-icon">🌿</div>
+    <div class="ov-title">Website</div>
+    <div class="ov-sub">Full HTML/CSS/JS</div>
+    <div class="ov-status status-done">✅ Done</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-icon">🔥</div>
+    <div class="ov-title">Firebase</div>
+    <div class="ov-sub">Database + Auth</div>
+    <div class="ov-status status-setup">⚙️ Setup Needed</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-icon">💬</div>
+    <div class="ov-title">WhatsApp API</div>
+    <div class="ov-sub">Auto-reply Bot</div>
+    <div class="ov-status status-setup">⚙️ Setup Needed</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-icon">💳</div>
+    <div class="ov-title">Razorpay</div>
+    <div class="ov-sub">Payment Gateway</div>
+    <div class="ov-status status-setup">⚙️ Setup Needed</div>
+  </div>
+  <div class="ov-card">
+    <div class="ov-icon">🌐</div>
+    <div class="ov-title">Hosting</div>
+    <div class="ov-sub">outingo.in live</div>
+    <div class="ov-status status-deploy">🚀 Last Step</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <!-- ARCHITECTURE -->
+  <div class="step-card open" id="arch">
+    <div class="step-header" onclick="toggle('arch')">
+      <div class="step-num num-green">🏗️</div>
+      <div class="step-info">
+        <div class="step-title">System Architecture — Poora Picture</div>
+        <div class="step-desc">Samjho kaise sab ek saath kaam karta hai</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="arch-grid">
+        <div class="arch-box"><div class="arch-icon">👤</div><div class="arch-name">User</div><div class="arch-tech">Browser / Mobile</div></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><div class="arch-icon">🌐</div><div class="arch-name">Frontend</div><div class="arch-tech">outingo.in (HTML+JS)</div></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><div class="arch-icon">⚡</div><div class="arch-name">Backend API</div><div class="arch-tech">Node.js + Express</div></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box"><div class="arch-icon">🔥</div><div class="arch-name">Firebase</div><div class="arch-tech">Firestore DB</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;" class="arch-box"><div class="arch-icon">💬</div><div class="arch-name">WhatsApp API</div><div class="arch-tech">Meta Cloud API → Auto-reply Bot</div></div>
+        <div style="flex:1;min-width:200px;" class="arch-box"><div class="arch-icon">💳</div><div class="arch-name">Razorpay</div><div class="arch-tech">Payment Gateway → UPI/Card/EMI</div></div>
+        <div style="flex:1;min-width:200px;" class="arch-box"><div class="arch-icon">🚀</div><div class="arch-name">Render.com</div><div class="arch-tech">Free Node.js Hosting</div></div>
+      </div>
+      <div class="info-green" style="margin-top:16px;">✅ Total monthly cost = <strong>₹0 to ₹500</strong> (almost FREE to start!)</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: NODE.JS SETUP -->
+  <div class="step-card" id="step1">
+    <div class="step-header" onclick="toggle('step1')">
+      <div class="step-num num-green">1</div>
+      <div class="step-info">
+        <div class="step-title">Node.js Backend Setup</div>
+        <div class="step-desc">server.js install karo aur locally chalao</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+
+      <div class="substep">
+        <div class="substep-num">A</div>
+        <div class="substep-content">
+          <h4>Node.js Install Karo</h4>
+          <p>Pehle Node.js download karo — <a href="https://nodejs.org" target="_blank">nodejs.org</a> se LTS version lo.</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment"># Check karo ki install hua ya nahi</span><br>
+            <span class="cmd">node --version</span>   <span class="comment"># v18+ chahiye</span><br>
+            <span class="cmd">npm --version</span>    <span class="comment"># v9+ chahiye</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">B</div>
+        <div class="substep-content">
+          <h4>Project Folder Banao</h4>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="cmd">mkdir outingo-backend</span><br>
+            <span class="cmd">cd outingo-backend</span><br>
+            <span class="comment"># Yahan server.js aur .env file rakho</span><br>
+            <span class="cmd">npm install</span>   <span class="comment"># All packages install honge</span>
+          </div>
+          <div class="file-tree" style="margin-top:10px;">
+            <div class="folder">📁 outingo-backend/</div>
+            <div class="indent1 file">📄 server.js <span class="file-note">← main backend</span></div>
+            <div class="indent1 file">📄 package.json</div>
+            <div class="indent1 file">📄 .env <span class="file-note">← secret keys (NEVER share!)</span></div>
+            <div class="indent1 file">📄 firebase-service-account.json <span class="file-note">← Firebase download</span></div>
+            <div class="indent1 folder">📁 node_modules/ <span class="file-note">← auto-generated</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">C</div>
+        <div class="substep-content">
+          <h4>Server Chalao (Test)</h4>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="cmd">npm start</span><br>
+            <span class="comment"># Output aana chahiye:</span><br>
+            <span class="str"># 🌿 OUTINGO Backend running on port 3000</span><br>
+            <span class="str"># ✅ Firebase connected</span>
+          </div>
+          <p>Browser mein jao: <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> — green checkmark dikhega!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: FIREBASE -->
+  <div class="step-card" id="step2">
+    <div class="step-header" onclick="toggle('step2')">
+      <div class="step-num num-gold">2</div>
+      <div class="step-info">
+        <div class="step-title">🔥 Firebase Setup (Free Database)</div>
+        <div class="step-desc">Bookings aur properties store karne ke liye</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+
+      <div class="substep">
+        <div class="substep-num">A</div>
+        <div class="substep-content">
+          <h4>Firebase Project Banao</h4>
+          <p>Jao: <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a></p>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>➕ "Add Project" → Name: <strong>outingo</strong></li>
+            <li>✅ Google Analytics enable karo</li>
+            <li>🔥 "Create Project" click karo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">B</div>
+        <div class="substep-content">
+          <h4>Firestore Database Enable Karo</h4>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>Left menu → <strong>Firestore Database</strong></li>
+            <li>"Create Database" → Start in <strong>test mode</strong></li>
+            <li>Region: <strong>asia-south1 (Mumbai)</strong> ← important for speed!</li>
+          </ul>
+          <div class="info-gold">⚠️ Test mode 30 din ke baad production mode mein switch karo (security rules add karo)</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">C</div>
+        <div class="substep-content">
+          <h4>Service Account Key Download Karo</h4>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>⚙️ Project Settings → <strong>Service Accounts</strong></li>
+            <li>"Generate New Private Key" → Download JSON</li>
+            <li>Rename to: <strong>firebase-service-account.json</strong></li>
+            <li>Rakho: outingo-backend/ folder mein</li>
+          </ul>
+          <div class="info-red">🔒 Yeh file KABHI GitHub pe mat upload karna! .gitignore mein add karo.</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">D</div>
+        <div class="substep-content">
+          <h4>Sample Data Add Karo (Test ke liye)</h4>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment"># Server chal raha ho tab yeh curl command chalao:</span><br>
+            <span class="cmd">curl -X POST http://localhost:3000/api/seed</span><br>
+            <span class="comment"># 6 sample properties add ho jayengi database mein!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: WHATSAPP -->
+  <div class="step-card" id="step3">
+    <div class="step-header" onclick="toggle('step3')">
+      <div class="step-num num-blue">3</div>
+      <div class="step-info">
+        <div class="step-title">💬 WhatsApp Auto-Reply Bot</div>
+        <div class="step-desc">Har booking pe automatic WhatsApp message</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+
+      <div class="substep">
+        <div class="substep-num">A</div>
+        <div class="substep-content">
+          <h4>Meta Developer Account</h4>
+          <p>Jao: <a href="https://developers.facebook.com" target="_blank">developers.facebook.com</a></p>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>➕ "Create App" → Business type select karo</li>
+            <li>App name: <strong>Outingo</strong></li>
+            <li>Products → <strong>WhatsApp</strong> add karo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">B</div>
+        <div class="substep-content">
+          <h4>Phone Number aur Token lo</h4>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>WhatsApp → API Setup</li>
+            <li><strong>Phone Number ID</strong> copy karo</li>
+            <li><strong>Temporary Access Token</strong> copy karo (24hr valid)</li>
+            <li>Production ke liye: System User Token generate karo (permanent)</li>
+          </ul>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment"># .env mein add karo:</span><br>
+            <span class="var">WHATSAPP_PHONE_NUMBER_ID</span>=<span class="str">123456789012345</span><br>
+            <span class="var">WHATSAPP_ACCESS_TOKEN</span>=<span class="str">EAAxxxxx...</span><br>
+            <span class="var">WHATSAPP_VERIFY_TOKEN</span>=<span class="str">outingo_secret_2025</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">C</div>
+        <div class="substep-content">
+          <h4>Webhook Setup (Deploy ke baad)</h4>
+          <p>Jab backend deploy ho jaye (Step 5), tab webhook set karo:</p>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>WhatsApp → Configuration → Webhook</li>
+            <li>Callback URL: <strong>https://your-app.onrender.com/api/whatsapp/webhook</strong></li>
+            <li>Verify Token: <strong>outingo_secret_2025</strong> (same as .env)</li>
+            <li>Subscribe to: <strong>messages</strong></li>
+          </ul>
+          <div class="info-blue">💡 Webhook sirf tab kaam karta hai jab server publicly accessible ho (localhost pe nahi)</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">D</div>
+        <div class="substep-content">
+          <h4>Test Message Bhejo</h4>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment"># Test: apne number pe WhatsApp bhejo</span><br>
+            <span class="cmd">curl -X POST http://localhost:3000/api/bookings \</span><br>
+            <span class="cmd">  -H "Content-Type: application/json" \</span><br>
+            <span class="cmd">  -d '{"name":"Test","phone":"9999999999","propertyType":"Villa","date":"2025-12-25","groupSize":"50"}'</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: RAZORPAY -->
+  <div class="step-card" id="step4">
+    <div class="step-header" onclick="toggle('step4')">
+      <div class="step-num num-purple">4</div>
+      <div class="step-info">
+        <div class="step-title">💳 Razorpay Payment Gateway</div>
+        <div class="step-desc">UPI, Card, Net Banking, EMI — sab ek jagah</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+
+      <div class="substep">
+        <div class="substep-num">A</div>
+        <div class="substep-content">
+          <h4>Razorpay Account Banao</h4>
+          <p>Jao: <a href="https://dashboard.razorpay.com/signup" target="_blank">dashboard.razorpay.com/signup</a></p>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>Business details fill karo (GST aur bank account chahiye)</li>
+            <li>KYC complete karo (3-5 din laga sakta hai)</li>
+            <li>Test mode mein turant use kar sakte ho!</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">B</div>
+        <div class="substep-content">
+          <h4>API Keys lo</h4>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>Dashboard → Settings → API Keys</li>
+            <li>"Generate Test Key" → copy karo</li>
+            <li>Live key tabhi milegi jab KYC done ho</li>
+          </ul>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="var">RAZORPAY_KEY_ID</span>=<span class="str">rzp_test_XXXXXXXXXX</span><br>
+            <span class="var">RAZORPAY_KEY_SECRET</span>=<span class="str">XXXXXXXXXXXXXXXXXX</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">C</div>
+        <div class="substep-content">
+          <h4>Frontend mein Payment Button Add Karo</h4>
+          <p>Website ke booking form mein yeh script add karo (closing &lt;/body&gt; se pehle):</p>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="kw">&lt;script src=</span><span class="str">"https://checkout.razorpay.com/v1/checkout.js"</span><span class="kw">&gt;&lt;/script&gt;</span><br><br>
+            <span class="kw">async function</span> <span class="cmd">payNow</span>(bookingId, amount, name, phone) {<br>
+            &nbsp;&nbsp;<span class="comment">// 1. Backend se order create karo</span><br>
+            &nbsp;&nbsp;<span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">'/api/payment/create-order'</span>, {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;method: <span class="str">'POST'</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;headers: {<span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>},<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;body: JSON.stringify({amount, bookingId, name, phone})<br>
+            &nbsp;&nbsp;});<br>
+            &nbsp;&nbsp;<span class="kw">const</span> {orderId, key} = <span class="kw">await</span> res.json();<br><br>
+            &nbsp;&nbsp;<span class="comment">// 2. Razorpay popup open karo</span><br>
+            &nbsp;&nbsp;<span class="kw">const</span> rzp = <span class="kw">new</span> Razorpay({<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;key, order_id: orderId,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;name: <span class="str">'Outingo'</span>, description: <span class="str">'Outing Booking'</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;prefill: {name, contact: phone},<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;theme: {color: <span class="str">'#22c55e'</span>},<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;handler: <span class="kw">async</span> (response) => {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// 3. Payment verify karo</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">await</span> fetch(<span class="str">'/api/payment/verify'</span>, {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;method: <span class="str">'POST'</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;body: JSON.stringify({...response, bookingId})<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alert(<span class="str">'✅ Payment successful! WhatsApp confirmation coming!'</span>);<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;});<br>
+            &nbsp;&nbsp;rzp.open();<br>
+            }
+          </div>
+          <div class="info-green">✅ Test mein card number use karo: <strong>4111 1111 1111 1111</strong>, CVV: 123, Expiry: any future date</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">D</div>
+        <div class="substep-content">
+          <h4>Razorpay Commission</h4>
+          <table class="cost-table">
+            <tr><th>Payment Method</th><th>Fee</th></tr>
+            <tr><td>UPI</td><td class="free">FREE (0%)</td></tr>
+            <tr><td>Credit/Debit Card</td><td class="paid">2% + GST</td></tr>
+            <tr><td>Net Banking</td><td class="paid">1.5% + GST</td></tr>
+            <tr><td>EMI</td><td class="paid">1.5–3%</td></tr>
+            <tr><td>Settlement</td><td>T+2 working days</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: HOSTING -->
+  <div class="step-card" id="step5">
+    <div class="step-header" onclick="toggle('step5')">
+      <div class="step-num num-blue">5</div>
+      <div class="step-info">
+        <div class="step-title">🌐 Domain + Hosting — outingo.in Live!</div>
+        <div class="step-desc">Website aur backend dono deploy karo</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+
+      <div class="substep">
+        <div class="substep-num">A</div>
+        <div class="substep-content">
+          <h4>Domain Register Karo — outingo.in</h4>
+          <table class="cost-table">
+            <tr><th>Platform</th><th>Price</th><th>Best For</th></tr>
+            <tr><td><a href="https://godaddy.com" target="_blank">GoDaddy</a></td><td class="paid">~₹800/yr</td><td>.in domain</td></tr>
+            <tr><td><a href="https://bigrock.in" target="_blank">BigRock</a></td><td class="paid">~₹700/yr</td><td>Indian registrar</td></tr>
+            <tr><td><a href="https://namecheap.com" target="_blank">Namecheap</a></td><td class="paid">~$12/yr</td><td>.com domain</td></tr>
+          </table>
+          <div class="info-blue">💡 Tip: outingo.in + outingo.com dono buy karo. Dono ek hi site pe point karo.</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">B</div>
+        <div class="substep-content">
+          <h4>Frontend Deploy — Netlify (FREE)</h4>
+          <p>HTML website ke liye sabse easy:</p>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>1. Jao <a href="https://netlify.com" target="_blank">netlify.com</a> → Sign up</li>
+            <li>2. outingo.html file drag & drop karo</li>
+            <li>3. Site Settings → Custom Domain → outingo.in add karo</li>
+            <li>4. DNS settings mein Netlify ke nameservers add karo (GoDaddy panel mein)</li>
+          </ul>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment"># Ya Netlify CLI se deploy karo:</span><br>
+            <span class="cmd">npm install -g netlify-cli</span><br>
+            <span class="cmd">netlify deploy --prod --dir=.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">C</div>
+        <div class="substep-content">
+          <h4>Backend Deploy — Render.com (FREE)</h4>
+          <ul style="list-style:none;margin:8px 0;font-size:.84rem;color:var(--muted);line-height:2;">
+            <li>1. GitHub pe outingo-backend push karo</li>
+            <li>2. <a href="https://render.com" target="_blank">render.com</a> → New Web Service</li>
+            <li>3. GitHub repo connect karo</li>
+            <li>4. Build Command: <strong>npm install</strong></li>
+            <li>5. Start Command: <strong>npm start</strong></li>
+            <li>6. Environment Variables add karo (.env ki values)</li>
+            <li>7. Deploy! URL milegi: <strong>outingo-api.onrender.com</strong></li>
+          </ul>
+          <div class="info-green">✅ Render free tier: 750 hrs/month — ek server ke liye kaafi hai!</div>
+          <div class="info-gold">⚠️ Free tier mein server 15 min baad sleep ho jata hai. Upgrade karo ₹700/month pe production ke liye.</div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">D</div>
+        <div class="substep-content">
+          <h4>Frontend mein API URL Update Karo</h4>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <span class="comment">// outingo.html mein yeh add karo (top of &lt;script&gt;):</span><br>
+            <span class="kw">const</span> <span class="var">API_URL</span> = <span class="str">'https://outingo-api.onrender.com'</span>;<br><br>
+            <span class="comment">// submitBooking function update karo:</span><br>
+            <span class="kw">async function</span> <span class="cmd">submitBooking</span>() {<br>
+            &nbsp;&nbsp;<span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">`${API_URL}/api/bookings`</span>, {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;method: <span class="str">'POST'</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;headers: {<span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>},<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;body: JSON.stringify({name, phone, email, propertyType, date, ...})<br>
+            &nbsp;&nbsp;});<br>
+            &nbsp;&nbsp;<span class="kw">const</span> data = <span class="kw">await</span> res.json();<br>
+            &nbsp;&nbsp;<span class="kw">if</span>(data.success) openBooking(propertyType);<br>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="substep">
+        <div class="substep-num">E</div>
+        <div class="substep-content">
+          <h4>SSL Certificate (HTTPS) — FREE</h4>
+          <p>Netlify aur Render dono automatic HTTPS dete hain Let's Encrypt ke through. Kuch karna nahi! ✅</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COST TABLE -->
+  <div class="step-card" id="cost">
+    <div class="step-header" onclick="toggle('cost')">
+      <div class="step-num num-green">💰</div>
+      <div class="step-info">
+        <div class="step-title">Total Monthly Cost</div>
+        <div class="step-desc">Kitna kharcha aayega — shuruat se growth tak</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <table class="cost-table">
+        <tr><th>Service</th><th>Shuruat (Free)</th><th>Growth (₹/month)</th></tr>
+        <tr><td>🌐 Netlify (Frontend)</td><td class="free">₹0</td><td class="free">₹0</td></tr>
+        <tr><td>⚡ Render (Backend)</td><td class="free">₹0</td><td class="paid">₹700</td></tr>
+        <tr><td>🔥 Firebase Firestore</td><td class="free">₹0 (50K reads/day free)</td><td class="paid">₹200 (heavy use)</td></tr>
+        <tr><td>💬 WhatsApp API</td><td class="free">₹0 (1000 msgs/month free)</td><td class="paid">₹0.50/msg after that</td></tr>
+        <tr><td>💳 Razorpay</td><td class="free">₹0 (setup free)</td><td class="paid">2% per transaction</td></tr>
+        <tr><td>🌐 Domain (outingo.in)</td><td class="paid">₹800/year</td><td class="paid">₹67/month</td></tr>
+        <tr style="background:rgba(34,197,94,0.05)"><td><strong>Total</strong></td><td class="free"><strong>₹0 – ₹67/month!</strong></td><td class="paid"><strong>~₹1,000/month</strong></td></tr>
+      </table>
+      <div class="info-green">🎉 Pehle 3–6 mahine practically FREE mein chala sakte ho. Jab revenue aane lage tab upgrade karo!</div>
+    </div>
+  </div>
+
+  <!-- FINAL CHECKLIST -->
+  <div class="step-card" id="checklist">
+    <div class="step-header" onclick="toggle('checklist')">
+      <div class="step-num num-green">✅</div>
+      <div class="step-info">
+        <div class="step-title">Final Launch Checklist</div>
+        <div class="step-desc">Sab check karo launch se pehle</div>
+      </div>
+      <div class="step-arrow">▼</div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li><span class="check-icon">✅</span> outingo.html website ready hai</li>
+        <li><span class="check-icon">✅</span> server.js backend code ready hai</li>
+        <li><span class="check-icon">⬜</span> Node.js install karo + npm install chalao</li>
+        <li><span class="check-icon">⬜</span> Firebase project create karo + service-account.json download karo</li>
+        <li><span class="check-icon">⬜</span> .env file mein sab keys fill karo</li>
+        <li><span class="check-icon">⬜</span> Locally test karo (localhost:3000)</li>
+        <li><span class="check-icon">⬜</span> Meta Developer account + WhatsApp API setup karo</li>
+        <li><span class="check-icon">⬜</span> Razorpay account + API keys lo</li>
+        <li><span class="check-icon">⬜</span> GitHub pe code push karo</li>
+        <li><span class="check-icon">⬜</span> Render.com pe backend deploy karo</li>
+        <li><span class="check-icon">⬜</span> Netlify pe frontend deploy karo</li>
+        <li><span class="check-icon">⬜</span> outingo.in domain buy karo + connect karo</li>
+        <li><span class="check-icon">⬜</span> WhatsApp webhook set karo (deployed URL se)</li>
+        <li><span class="check-icon">⬜</span> Test booking submit karo — WhatsApp aaya? ✅</li>
+        <li><span class="check-icon">⬜</span> Test payment karo — Razorpay popup aaya? ✅</li>
+        <li><span class="check-icon">⬜</span> 🚀 LAUNCH! Social media pe share karo!</li>
+      </ul>
+      <div class="info-blue" style="margin-top:20px;">🆘 Koi problem aye? Phir puchho — hum step by step help karenge! WhatsApp ya email pe contact karo.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(id) {
+    const card = document.getElementById(id);
+    card.classList.toggle('open');
+  }
+
+  function copyCode(btn) {
+    const block = btn.parentElement;
+    const text = block.innerText.replace('Copy\n', '');
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.style.background = 'rgba(34,197,94,0.3)';
+      setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = ''; }, 2000);
+    });
+  }
+
+  // Auto-open first card
+  document.getElementById('arch').classList.add('open');
+</script>
+</body>
+</html>
