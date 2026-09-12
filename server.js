@@ -35,21 +35,56 @@ const transporter = nodemailer.createTransport({
 
 // ---------- Server-side pricing truth for The Anthurium ----------
 // Never trust amounts sent from the frontend — always recompute here.
+// Glamping Pods is currently sold out and intentionally excluded from
+// bookable inventory. Prices below are the LISTING prices — the
+// OUTINGGO10 promo code applies a further 10% off on top of these.
 const ANTHURIUM_PACKAGES = {
-  "glamping-pods": { name: "Glamping Pods (Tent Stays)", pricePerPerson: 1199, maxPax: null },
-  "standard-rooms": { name: "Standard Rooms", pricePerPerson: 1799, maxPax: null },
-  "premium-suites": { name: "Premium Suites", flatPrice: 6999, maxPax: 5 },
-  "luxurious-villa": { name: "Luxurious Villa", flatPrice: 14999, maxPax: 6 },
+  "standard-rooms": {
+    name: "Standard Rooms",
+    pricePerPerson: 2000,
+    maxPax: null,
+  },
+  "premium-suites": { name: "Premium Suites", flatPrice: 7900, maxPax: 5 },
+  "luxurious-villa": { name: "Luxurious Villa", flatPrice: 17099, maxPax: 6 },
 };
-const TAX_RATE = 0.05;
+const TAX_RATE = 0;
+const OUTINGGO_COMMISSION_RATE = 0.1; // OutingGo keeps 10%, Anthurium gets 90% (calculated on final amount paid)
+const PROMO_CODES = {
+  OUTINGGO10: 0.1, // 10% off the listing price
+};
 
-function computeAmount(packageId, guests) {
+function computeAmount(packageId, guests, promoCode) {
   const pkg = ANTHURIUM_PACKAGES[packageId];
   if (!pkg) return null;
   if (pkg.maxPax && guests > pkg.maxPax) return null;
-  const base = pkg.flatPrice ? pkg.flatPrice : pkg.pricePerPerson * guests;
+
+  const listingBase = pkg.flatPrice
+    ? pkg.flatPrice
+    : pkg.pricePerPerson * guests;
+
+  const normalizedCode = (promoCode || "").trim().toUpperCase();
+  const discountRate = PROMO_CODES[normalizedCode] || 0;
+  const promoApplied = discountRate > 0;
+  const discountAmount = Math.round(listingBase * discountRate);
+  const base = listingBase - discountAmount;
+
   const tax = Math.round(base * TAX_RATE);
-  return { base, tax, total: base + tax, packageName: pkg.name };
+  const total = base + tax;
+  const outinggoCommission = Math.round(total * OUTINGGO_COMMISSION_RATE);
+  const anthuriumPayout = total - outinggoCommission;
+
+  return {
+    listingBase,
+    promoApplied,
+    promoCode: promoApplied ? normalizedCode : null,
+    discountAmount,
+    base,
+    tax,
+    total,
+    packageName: pkg.name,
+    outinggoCommission,
+    anthuriumPayout,
+  };
 }
 
 function generateBookingId() {
@@ -75,15 +110,18 @@ function isTomorrow(dateStr) {
 // ---------- 1. Create order (booking pending) ----------
 app.post("/api/booking/create-order", async (req, res) => {
   try {
-    const { packageId, guests, date, name, phone, email, message } = req.body;
+    const { packageId, guests, date, name, phone, email, message, promoCode } =
+      req.body;
 
     if (!packageId || !guests || !date || !name || !phone || !email) {
       return res.status(400).json({ error: "Missing required fields." });
     }
 
-    const pricing = computeAmount(packageId, Number(guests));
+    const pricing = computeAmount(packageId, Number(guests), promoCode);
     if (!pricing) {
-      return res.status(400).json({ error: "Invalid package or guest count for this option." });
+      return res
+        .status(400)
+        .json({ error: "Invalid package or guest count for this option." });
     }
 
     const bookingId = generateBookingId();
@@ -94,27 +132,37 @@ app.post("/api/booking/create-order", async (req, res) => {
       receipt: bookingId,
     });
 
-    await db.collection("bookings").doc(bookingId).set({
-      bookingId,
-      property: "The Anthurium",
-      packageId,
-      packageName: pricing.packageName,
-      guests: Number(guests),
-      bookingDate: date,
-      customerName: name,
-      customerPhone: phone,
-      customerEmail: email,
-      specialRequests: message || "",
-      baseAmount: pricing.base,
-      tax: pricing.tax,
-      totalAmount: pricing.total,
-      razorpayOrderId: order.id,
-      paymentStatus: "PENDING",
-      bookingStatus: "PENDING_PAYMENT",
-      source: "theanthurium",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await db
+      .collection("bookings")
+      .doc(bookingId)
+      .set({
+        bookingId,
+        property: "The Anthurium",
+        packageId,
+        packageName: pricing.packageName,
+        guests: Number(guests),
+        bookingDate: date,
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email,
+        specialRequests: message || "",
+        listingAmount: pricing.listingBase,
+        promoApplied: pricing.promoApplied,
+        promoCode: pricing.promoCode,
+        discountAmount: pricing.discountAmount,
+        baseAmount: pricing.base,
+        tax: pricing.tax,
+        totalAmount: pricing.total,
+        outinggoCommission: pricing.outinggoCommission,
+        anthuriumPayout: pricing.anthuriumPayout,
+        settlementStatus: "PENDING",
+        razorpayOrderId: order.id,
+        paymentStatus: "PENDING",
+        bookingStatus: "PENDING_PAYMENT",
+        source: "theanthurium",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
 
     res.json({
       bookingId,
@@ -125,16 +173,28 @@ app.post("/api/booking/create-order", async (req, res) => {
     });
   } catch (err) {
     console.error("create-order error:", err);
-    res.status(500).json({ error: "Could not create order. Please try again." });
+    res
+      .status(500)
+      .json({ error: "Could not create order. Please try again." });
   }
 });
 
 // ---------- 2. Verify payment (backend-authoritative) ----------
 app.post("/api/booking/verify-payment", async (req, res) => {
   try {
-    const { bookingId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const {
+      bookingId,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
 
-    if (!bookingId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (
+      !bookingId ||
+      !razorpay_order_id ||
+      !razorpay_payment_id ||
+      !razorpay_signature
+    ) {
       return res.status(400).json({ error: "Missing payment details." });
     }
 
@@ -193,7 +253,10 @@ app.post("/api/booking/verify-payment", async (req, res) => {
         `,
       });
     } catch (mailErr) {
-      console.error("Anthurium email failed (booking still confirmed):", mailErr);
+      console.error(
+        "Anthurium email failed (booking still confirmed):",
+        mailErr,
+      );
     }
 
     // Email to customer
@@ -216,7 +279,10 @@ app.post("/api/booking/verify-payment", async (req, res) => {
         `,
       });
     } catch (mailErr) {
-      console.error("Customer email failed (booking still confirmed):", mailErr);
+      console.error(
+        "Customer email failed (booking still confirmed):",
+        mailErr,
+      );
     }
 
     res.json({ success: true, bookingId, bookingStatus: "CONFIRMED" });
