@@ -5,7 +5,18 @@ const crypto = require("crypto");
 const Razorpay = require("razorpay");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
-const serviceAccount = require("./firebase-service-account.json");
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+  // Preferred: base64-encoded JSON in a single-line env var (avoids
+  // paste corruption from multi-line secret files).
+  const decoded = Buffer.from(
+    process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+    "base64",
+  ).toString("utf8");
+  serviceAccount = JSON.parse(decoded);
+} else {
+  serviceAccount = require("./firebase-service-account.json");
+}
 
 const app = express();
 app.use(cors());
